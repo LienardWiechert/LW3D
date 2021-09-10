@@ -1,0 +1,65 @@
+ **************************************************************
+ Lienard-Wiechert Code version 01 Oct 2019 by Robert Ryne, LBNL
+ This version integrates (x,gbx,y,gby,z,gbz) as functions of t
+ Report problems or questions to RDRyne@lbl.gov
+ **************************************************************
+  
+ PROBLEM CONSTANTS:
+ tauini,taufin= 0.,  2.09584918309246859E-8
+ nsteps= 1000
+ deltatau= 2.09794713022269124E-11
+ tauhistmin,tauhistmax= 0.,  2.09584918309246859E-8
+ nhistpoints= 1004
+ tauminus= -2.00000000000000012E-9
+ imax,kmax= 11,  129
+ xoffmin,xoffmax= -5.00000000000000024E-5,  5.00000000000000024E-5
+ zoffmin,zoffmax= -5.00000000000000024E-5,  5.00000000000000024E-5
+ npart_gbl= 624200000
+ chrgperbunch= 1.00000000000000004E-10
+ lwseed= 3147228
+ iwritezeroes= 0
+ istopafter1fieldcalc= 1
+ irotategrid= 1
+ relativetocentroid= 1.
+  
+ STARTING SIMULATION. USING  6250  MPI PROCESSES
+ (PE0) npart_lcl= 99872
+gam0,gb0,beta0= 5.000000000000E+02  4.999989999990E+02  9.999979999980E-01
+ brho= 0.85225274079636459
+ disttype= 1
+ gaussiancutoff= 5.
+ icholesky= 0
+ calling gendist with nstartarg,ntotarg= 1,  99872
+ inside gendist with ntot,nstart= 99872,  1
+ back from gendist
+ Entered Adams routine...
+ Step  1000  complete; computing fields at t= 2.09584918309246859E-8
+centroid= 1.94068422E-09  4.58108366E-05 -2.47097527E-10  0.00000000E+00 -9.13108752E-08  4.99999000E+02
+ theta= 9.16218564226461922E-8
+ In what follows, observation points (x,z) are in a frame aligned w/ direction of motion
+xmin,xmax,zmin,zmax=-4.99980593E-05  5.00019407E-05 -5.00913109E-05  4.99086891E-05
+ i= 1
+ i= 2
+ i= 3
+ i= 4
+ i= 5
+ i= 6
+ i= 7
+ i= 8
+ i= 9
+ i= 10
+ i= 11
+ PE0 tsearchmin= 2.05138473216641219E-8
+ PE0 conevalmax= 3.67178080752765523E-16
+ PE0 mlomin, mhimax = 979,  1001
+ PE0 obspt at mlomin = 1.00019452653113406E-5,  -2.47097527215512996E-10,  4.99086882086179732E-5
+ PE0 obspt at mhimax = -4.99980638968740502E-5,  -2.47097527215512996E-10,  -5.00913062940702786E-5
+ global tsearchmin= 2.05082366793788324E-8
+ global conevalmax= 4.3333611020481508E-16
+ global mlomin,mhimax= 979,  1001
+ done with mpi_reduce
+ Done computing fields.
+ initialization time= 0.82272466617514539  sec
+ propagation time= 7601.1525354304904  sec
+ total execution time= 7601.9752600966658  sec
+ job finished
