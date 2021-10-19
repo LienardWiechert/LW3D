@@ -8,7 +8,8 @@ aamain.f90 : the main program
 probcons.f90 : contains many problem parameters  
 lienwiech.f90 : the guts of the code; it computes the LW fields  
 integrators.f90 : contains the numerical integration routines for advancing particles in time  
-evalroutines.f90 : evaluates the RHS of the equations of motion. Contains subroutine getexternalfield().  
+evalroutines.f90 : evaluates the RHS of the equations of motion  
+externalfield.f90 : Contains subroutine getexternalfield() that defines the external fields  
 distribution.f90 : sets the initial distribution of particles  
 random.f90 : random number routines  
 diagnostics.f90 : diagnostic routines, e.g., to write 2nd moments  
@@ -21,10 +22,10 @@ At present there is no makefile. Instead there is a script called "compileit"
 This version of the code does not have an input file. To model a specific problem a user needs to edit the code. There are 2 places where a user will need to make changes:
 
 probcons.f90 contains many problem parameters.  
-evalroutines.f90 contains subroutine getexternalfield(). This routine returns the external field at a point (t,x,y,z).  
+externalfield.f90 contains subroutine getexternalfield(). This routine returns the external field at a point (t,x,y,z).  
 
 ## Details of subroutine getexternalfield()  
-evalroutines.f90 contains subroutine getexternalfield(). This routine returns the external field at a point (t,x,y,z). The beamline geometry (location of magnets, etc.) is described in a global Cartesian frame. Note that the fields must be smooth (no hard edges). At present this routine describes an undulator comprised of alternating soft-edge dipole magnets with midplane symmetry. The magnetic field is prescribed in the midplane and off-axis contributions are included as expansions that satisfy Maxwell's equations.
+externalfield.f90 contains subroutine getexternalfield(). This routine returns the external field at a point (t,x,y,z). The beamline geometry (location of magnets, etc.) is described in a global Cartesian frame. Note that the fields must be smooth (no hard edges). At present this routine describes an undulator comprised of alternating soft-edge dipole magnets with midplane symmetry. The magnetic field is prescribed in the midplane and off-axis contributions are included as expansions that satisfy Maxwell's equations.
 
 ## Specifying the LW field output grid  
 The output grid is controlled by several parameters in probcons.f90 . For example,  
@@ -83,7 +84,7 @@ finalp.out: a sample of particles from the final distribution
 See subroutine getmatrixandcentroid(ekin,cent,sigmat) in file probcons.f90 .  
 Note, in particular, that cent(5) is the initial z centroid. You need to make sure that this is consistent with the geometrical layout of the magnets specified in subroutine getexternalfield(). For example, if the fringe field of the first magnet is centered at z=0, then you want cent(5) to equal some number (e.g. cent(5)=-0.20 meters) that is before the fringe field. On the other hand if the first magnet is centered at 0.2 meters then it is fine to set cent(5)=0 (assuming the fringe region is sufficiently narrow).
 
-## Details on modifying subroutine getexternalfield() in evalroutines.f90  
+## Details on modifying subroutine getexternalfield() 
 Subroutine getexternalfield contains all the information describing where the magnets are located, their strengths, etc. At the moment it is hardwired to model an undulator comprised of alternating soft-edge dipole magnets. It uses a tanh model for the dipole fringe fields. Be sure to make your timestep small enough to resolve the fringe fields.
 
 ## Note on subroutine getexternalfield()  
