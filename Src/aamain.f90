@@ -1,12 +1,13 @@
       program lw3d
 ! Parallel 3D Lienard-Wiechert code
-! Robert D Ryne -- version 10 September, 2021
+! Robert D Ryne -- version 19 October, 2021
       use mpi
       use lwprobcons, only : nsteps,nhistpoints,indevar,refptclhist,refptcltime,  &
       &                      nprop,npart_gbl,chrgperbunch,tauini,taufin,tauminus,lwseed,writeprobcons
       use numerical_distributions, only : initdist
       use integrators, only : propagate,tdriftexact,afterstep,rk4cpy
-      use evalroutines, only : getexternalfield,evalt
+      use evalroutines, only : evalt
+      use externalfield, only : getexternalfield
       use putils, only : pwrite
       use diagnostics, only : moments,profile1d
       implicit none
@@ -29,12 +30,14 @@
 
       if(myrank.eq.0)then
         write(6,*)'******************************************************************'
-        write(6,*)'3D Lienard-Wiechert Code version 10 Sept 2021 by Robert Ryne, LBNL'
+        write(6,*)'3D Lienard-Wiechert Code version 19 Oct 2021 by Robert Ryne, LBNL'
         write(6,*)'******************************************************************'
       endif
+!!!!!!if(myrank.ne.-12345)goto 999
 
       call writeprobcons
       if(myrank.eq.0)write(6,*)'STARTING SIMULATION. USING ',mprocs,' MPI PROCESSES'
+!!!!!!if(nsteps.ne.-12345)stop
 
       if(myrank.eq.0)then
         open(unit=91,file='refhist.out',status='unknown')
@@ -95,11 +98,13 @@
 ! propagate the particles:
       call system_clock(count=iticks1)
       call propagate(ptcls,tauini,taufin,nsteps,indevar)
+!!!!!!if(npart_lcl.ne.-12345)goto 999
       call system_clock(count=iticks2)
 
       if(myrank.eq.0)open(unit=38,file='finalp.out',status='unknown')
       call pwrite(ptcls,nprop,npart_lcl,38,1,9600,6,15)
       if(myrank.eq.0)close(38)
+!!!!!!if(npart_lcl.ne.-12345)goto 999
       if(myrank.eq.0)open(unit=48,file='finalzprof.out',status='unknown')
       call profile1d(ptcls,-1.d0,5,1024,48)
       if(myrank.eq.0)close(48)
@@ -107,6 +112,7 @@
       if(myrank.eq.0)write(6,*)'initialization time=',dble(iticks1-iticks0)/dble(ihertz),' sec'
       if(myrank.eq.0)write(6,*)'propagation time=',dble(iticks2-iticks1)/dble(ihertz),' sec'
       if(myrank.eq.0)write(6,*)'total execution time=',dble(iticks2-iticks0)/dble(ihertz),' sec'
+  999 continue
       call myexit
       end
 
