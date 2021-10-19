@@ -1,2 +1,2 @@
-ftn -o lw3d.x probcons.f90 putils.f90 diagnostics.f90 distribution.f90 \
+ftn -o lw3d.x probcons.f90 putils.f90 externalfield.f90 diagnostics.f90 distribution.f90 \
 evalroutines.f90 lienwiech.f90 integrators.f90 random.f90 aamain.f90
