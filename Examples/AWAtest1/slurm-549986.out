@@ -1,0 +1,97 @@
+ ******************************************************************
+ 3D Lienard-Wiechert Code version 19 Oct 2021 by Robert Ryne, LBNL
+ ******************************************************************
+  
+ PROBLEM CONSTANTS:
+ tauini,taufin= 0.,  1.99999998784505806E-8
+ nsteps= 2000
+ deltatau= 1.00050024404455131E-11
+ tauhistmin,tauhistmax= 0.,  1.99999998784505806E-8
+ nhistpoints= 2004
+ tauminus= -2.00000000000000012E-9
+ imax,kmax= 1,  129
+ xoffmin,xoffmax= 2*0.
+ zoffmin,zoffmax= -5.00000000000000024E-5,  5.00000000000000024E-5
+ npart_gbl= 5000000
+ chrgperbunch= 1.00000000000000006E-9
+ lwseed= 3147228
+ iwritezeroes= 0
+ istopafter1fieldcalc= 0
+ irotategrid= 1
+ relativetocentroid= 1.
+  
+ STARTING SIMULATION. USING  2000  MPI PROCESSES
+ (PE0) npart_lcl= 2500
+gam0,gb0,beta0= 1.379865935722E+02  1.379829699842E+02  9.999737395648E-01
+ brho= 0.23519319909135145
+ disttype= 1
+ gaussiancutoff= 5.
+ icholesky= 0
+ calling gendist with nstartarg,ntotarg= 1,  2500
+ inside gendist with ntot,nstart= 2500,  1
+ back from gendist
+ Entered Adams routine...
+ Step  25  complete; computing fields at t= 2.49999998480632237E-10
+centroid=-4.66417224E-09 -4.62698419E-06 -4.08109340E-09 -3.32206561E-20 -1.25053850E-01  1.37982970E+02
+ theta= -3.35330090855073601E-8
+ In what follows, obs pts (x,z) are in a frame aligned w/ direction of motion
+xmin,xmax,zmin,zmax=-4.66417224E-09 -4.66417224E-09 -1.25103850E-01 -1.25003850E-01
+ i= 1
+ PE0 tsearchmin= -1.99998699348555988E-9
+ PE0 conevalmax= 2.30420445200278545E-16
+ PE0 mlomin, mhimax = 0,  26
+ PE0 obspt at mlomin = -4.66317673017276963E-9,  -4.0810934034840602E-9,  -0.12508353713973924
+ PE0 obspt at mhimax = -4.66249559092572179E-9,  -4.0810934034840602E-9,  -0.1251038496397392
+ global tsearchmin= -1.99999993408421008E-9
+ global conevalmax= 2.46923387312548464E-16
+ global mlomin,mhimax= 0,  26
+ Done computing fields.
+ Step  50  complete; computing fields at t= 4.99999996961264473E-10
+centroid=-8.23816953E-07 -1.18254997E-02 -4.08109341E-09 -2.16236178E-13 -5.01077038E-02  1.37982969E+02
+ theta= -8.57026034184697326E-5
+ In what follows, obs pts (x,z) are in a frame aligned w/ direction of motion
+xmin,xmax,zmin,zmax=-8.23816953E-07 -8.23816953E-07 -5.01577038E-02 -5.00577038E-02
+ i= 1
+ PE0 tsearchmin= -1.99997673425856409E-9
+ PE0 conevalmax= 3.24858761009304233E-16
+ PE0 mlomin, mhimax = 0,  51
+ PE0 obspt at mlomin = -8.21473522589109166E-7,  -4.08109341098842221E-9,  -5.01350475327945466E-2
+ PE0 obspt at mhimax = -8.19531822982790913E-7,  -4.08109341098842221E-9,  -5.01577037827112895E-2
+ global tsearchmin= -1.99999996720001823E-9
+ global conevalmax= 3.62745706086379166E-16
+ global mlomin,mhimax= 0,  51
+ Done computing fields.
+ Step  75  complete; computing fields at t= 7.4999999544189671E-10
+centroid=-7.72557501E-04 -6.02010153E+00 -4.08249749E-09 -1.17416180E-08  2.48285866E-02  1.37851581E+02
+ theta= -4.36431616377995768E-2
+ In what follows, obs pts (x,z) are in a frame aligned w/ direction of motion
+xmin,xmax,zmin,zmax=-7.72557501E-04 -7.72557501E-04  2.47785866E-02  2.48785866E-02
+ i= 1
+ PE0 tsearchmin= -1.99999723188340049E-9
+ PE0 conevalmax= 1.81838316095799702E-15
+ PE0 mlomin, mhimax = 0,  76
+ PE0 obspt at mlomin = -7.71807622661214261E-4,  -4.08249748952180575E-9,  2.48114154562697753E-2
+ PE0 obspt at mhimax = -7.70376035984269843E-4,  -4.08249748952180575E-9,  2.4778634200713575E-2
+ global tsearchmin= -1.99999999193792358E-9
+ global conevalmax= 2.36185450214883294E-15
+ global mlomin,mhimax= 0,  76
+ Done computing fields.
+ Step  100  complete; computing fields at t= 9.99999993922528946E-10
+centroid=-8.74919160E-03 -2.34308406E+01 -4.09068321E-09 -1.57330502E-08  9.92980068E-02  1.35979027E+02
+ theta= -0.17063651665881457
+ In what follows, obs pts (x,z) are in a frame aligned w/ direction of motion
+xmin,xmax,zmin,zmax=-8.74919160E-03 -8.74919160E-03  9.92480068E-02  9.93480068E-02
+ i= 1
+ PE0 tsearchmin= 7.07525494137823368E-10
+ PE0 conevalmax= 2.82688018248341682E-16
+ PE0 mlomin, mhimax = 71,  101
+ PE0 obspt at mlomin = -8.75741675428585477E-3,  -4.09068321156645737E-9,  9.93457408130000857E-2
+ PE0 obspt at mhimax = -8.74070111628569464E-3,  -4.09068321156645737E-9,  9.92487329326374457E-2
+ global tsearchmin= 6.89501230957640588E-10
+ global conevalmax= 2.02271579323061215E-13
+ global mlomin,mhimax= 69,  101
+ Done computing fields.
+ initialization time= 0.39723109691160807  sec
+ propagation time= 57.167936429917262  sec
+ total execution time= 57.565167526828866  sec
+ job finished
