@@ -17,7 +17,8 @@ contains
       use lwprobcons, only : getmatrixandcentroid
       implicit none
       real*8, dimension(:,:) :: ptcls
-      integer :: iseed,indevar,npart_gbl,mimicmprocs
+      integer*8 :: npart_gbl
+      integer :: iseed,indevar,mimicmprocs
       integer, allocatable, dimension(:) :: seedarray
       integer :: npart_lcl,nbatchsize,nstart,seedarraysize
       real*8 :: ekin
@@ -70,7 +71,7 @@ contains
       subroutine init_particles(ptcls,ntot,nstart,indevar)
 ! initialize the particle array
       use mpi
-      use lwprobcons, only : getmatrixandcentroid,getmatrixandcentroid2,fracinbunch2,npart_gbl
+      use lwprobcons, only : getmatrixandcentroid !!!!!,getmatrixandcentroid2,fracinbunch2
       implicit none
       real*8, dimension(:,:) :: ptcls
       integer :: ntot,nstart,indevar,nnn,ntotarg,nstartarg
@@ -89,31 +90,34 @@ contains
       call MPI_COMM_SIZE(MPI_COMM_WORLD,mprocs,mpierr)
       call MPI_COMM_RANK(MPI_COMM_WORLD,myrank,mpierr)
 
+!this is a mess. fix later.
 
-      do nnn=1,2
-! test problem parameters:
-      if(nnn.eq.1)call getmatrixandcentroid(ekin,cent,sigmat)
-      if(nnn.eq.2 .and. fracinbunch2.eq.0.d0)return
-      if(nnn.eq.2)call getmatrixandcentroid2(ekin,cent,sigmat)
+!commented out old code that allowed for 2 bunches
+!!!!!!do nnn=1,2
+!!!!!!if(nnn.eq.1)call getmatrixandcentroid(ekin,cent,sigmat)
+!!!!!!if(nnn.eq.2 .and. fracinbunch2.eq.0.d0)return
+!!!!!!if(nnn.eq.2)call getmatrixandcentroid2(ekin,cent,sigmat)
 
+      call getmatrixandcentroid(ekin,cent,sigmat)
 
 ! generate the initial distribution:
       disttype=1
       gaussiancutoff=5.d0
       icholesky=0 ! =0 for 2x2 block diagonal case; =1 for a general sigmat
+      ! use the cholesky method when the matrix is not 2x2 block diagonal:
       if(sigmat(1,3).ne.0.d0 .or. sigmat(1,4).ne.0.d0 .or. sigmat(1,5).ne.0.d0 .or. sigmat(1,6).ne.0.d0)icholesky=1
 !     if(sigmat(2,3)... should check the other rows of sigmat to see if 2x2 block diagonal or not
       if(myrank.eq.0)write(6,*)'disttype=',disttype
       if(myrank.eq.0)write(6,*)'gaussiancutoff=',gaussiancutoff
       if(myrank.eq.0)write(6,*)'icholesky=',icholesky
-      if(nnn.eq.1)then
+!!!!!!if(nnn.eq.1)then
         nstartarg=1
-        ntotarg=nint((1.d0-fracinbunch2)*ntot)
-      endif
-      if(nnn.eq.2)then
-        nstartarg=nint((1.d0-fracinbunch2)*ntot)+1
-        ntotarg=ntot-nint((1.d0-fracinbunch2)*ntot)
-      endif
+        ntotarg=ntot !!!!!nint((1.d0-fracinbunch2)*ntot)
+!!!!!!endif
+!!!!!!if(nnn.eq.2)then
+!!!!!!  nstartarg=nint((1.d0-fracinbunch2)*ntot)+1
+!!!!!!  ntotarg=ntot-nint((1.d0-fracinbunch2)*ntot)
+!!!!!!endif
       if(myrank.eq.0)write(6,*)'calling gendist with nstartarg,ntotarg=',nstartarg,ntotarg
       call gendist(ptcls,cent,sigmat,gaussiancutoff,ntotarg,nstartarg,disttype,icholesky) !generate the initial distribution
       if(myrank.eq.0)write(6,*)'back from gendist'
@@ -127,7 +131,7 @@ contains
         enddo
       endif
 
-      enddo
+!!!!!!enddo
       return
       end
 
@@ -153,7 +157,10 @@ contains
       epsx2=sigmat(1,1)*sigmat(2,2)-sigmat(1,2)**2
       epsy2=sigmat(3,3)*sigmat(4,4)-sigmat(3,4)**2
       epsz2=sigmat(5,5)*sigmat(6,6)-sigmat(5,6)**2
-      if(epsx2.lt.0.d0.or.epsy2.lt.0.d0.or.epsz2.lt.0.d0)stop
+      if(epsx2.lt.0.d0.and.myrank.eq.0)write(6,*)'error: x-rms emittance squared <0'
+      if(epsy2.lt.0.d0.and.myrank.eq.0)write(6,*)'error: y-rms emittance squared <0'
+      if(epsz2.lt.0.d0.and.myrank.eq.0)write(6,*)'error: z-rms emittance squared <0'
+      if(epsx2.lt.0.d0.or.epsy2.lt.0.d0.or.epsz2.lt.0.d0)call myexit
 
 
       if(icholesky.eq.0)then
