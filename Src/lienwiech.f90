@@ -157,12 +157,12 @@ contains
           if(myrank.eq.0)write(6,*)'global tsearchmin=',gbltsearchmin
           if(myrank.eq.0)write(6,*)'global conevalmax=',gblconevalmax
           if(myrank.eq.0)write(6,*)'global mlomin,mhimax=',gblmlomin,gblmhimax
-          if(myrank.eq.0)then
-            do i=0,mprocs-1
-            write(999,*)elapsedarraygbl(i)
-            enddo
-            close(999)
-          endif
+!         if(myrank.eq.0)then
+!           do i=0,mprocs-1
+!           write(999,*)elapsedarraygbl(i)
+!           enddo
+!           close(999)
+!         endif
 
           call MPI_REDUCE(ebcomp,ebcompgbl,12*imax*jmax*kmax,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,ierr)
           if(myrank.eq.0)ebcomp(1:12,1:imax,1:jmax,1:kmax)=ebcompgbl(1:12,1:imax,1:jmax,1:kmax)*fpei*chrgperbunch/npart_gbl
@@ -412,8 +412,8 @@ contains
       call zbrent(xobs,yobs,zobs,tobs,zzzeta1,refptcltime(mlo),zzzeta2,refptcltime(mhi),1.d-20,0.d0,0.d0,tnewt,&
      &            errbrent,icountbrent,ididzb)
       if(ididzb.ne.1)write(6,*)'ididzb=',ididzb
-      zetanewt(1:6,1)=zzzeta1(1:6)
-      call rk4silent(zetanewt,refptcltime(mlo),tnewt,10,evalt1)   !changed 1 to 10
+        zetanewt(1:6,1)=zzzeta1(1:6)
+        call rk4silent(zetanewt,refptcltime(mlo),tnewt,10,evalt1)   !changed 1 to 10
 
  1357 continue
       tsrch=tnewt
@@ -478,7 +478,7 @@ contains
      &    exrad,eyrad,ezrad,bxrad,byrad,bzrad, &
      &    aphi1,aphi2,aphi3,aphi4,ipart)
       use mpi
-      use evalroutines, only : getexternalfield
+      use externalfield, only : getexternalfield
       implicit none
       integer :: ipart
       real*8, dimension(6) :: zetalcl,zetagbl
