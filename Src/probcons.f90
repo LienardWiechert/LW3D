@@ -1,23 +1,23 @@
 module lwprobcons
       implicit none
       real*8, parameter :: tauini=0.d0     !integrate from time tauini to taufin; the distribution is created at tauini
-      real*8, parameter :: taufin=2.0e-08
-      integer, parameter :: nsteps=2000 ! 100000   !# of integration steps from tauini to taufin; if too few, LW search might fail
+      real*8, parameter :: taufin=2.365e-08
+      integer, parameter :: nsteps=2050 ! 100000   !# of integration steps from tauini to taufin; if too few, LW search might fail
       real*8, parameter :: deltatau=(taufin-tauini)/(nsteps-1)
       real*8, parameter :: tauhistmin=tauini !store the history only if the time is between tauhistmin and tauhistmax
       real*8, parameter :: tauhistmax=taufin
       integer, parameter :: nhistpoints=nint((tauhistmax-tauhistmin)/deltatau)+5  !# of points in the stored history
-      real*8, parameter :: tauminus=-2.d-9 !particles assumed to travel in free space (no field) from tauminus to tauini
+      real*8, parameter :: tauminus=-2.d-9!particles assumed to travel in free space (no field) from tauminus to tauini
 
       integer, parameter :: imax=1  !imax=3  !size of the x output grid
       integer, parameter :: jmax=1  !size of the y output grid
       integer, parameter :: kmax=129 ! 60000 !size of the z output grid
-      real*8, parameter :: xoffmin=0.d0 !-1.d-5
-      real*8, parameter :: xoffmax=0.d0 ! 1.d-5
-      real*8, parameter :: yoffmin=-0.d0
-      real*8, parameter :: yoffmax= 0.d0 
-      real*8, parameter :: zoffmin=-5.d-5 ! 50.30d0 !50.400403d0 !5.d-5 !z grid range relative to the z centroid
-      real*8, parameter :: zoffmax= 5.d-5 !50.45d0 !50.400404d0 !1.65d-4 
+      real*8, parameter :: xoffmin=0.d0 !-1.25d0 !-1.d-5
+      real*8, parameter :: xoffmax=0.d0 !1.25d0 ! 1.d-5
+      real*8, parameter :: yoffmin=0.d0
+      real*8, parameter :: yoffmax=0.d0 
+      real*8, parameter :: zoffmin=-8.d-3 ! 50.30d0 !50.400403d0 !5.d-5 !z grid range relative to the z centroid
+      real*8, parameter :: zoffmax=8.d-3 !50.45d0 !50.400404d0 !1.65d-4 
       integer :: irotategrid=1 !must be 0 or 1, this controls the x-z grid rotation
       real*8 :: relativetocentroid=1.d0 !must be 0.d0 or 1.d0
 
@@ -27,7 +27,7 @@ module lwprobcons
 
       integer, parameter :: indevar=0  !independent variable (0=t, 1=z)
       integer, parameter :: nprop=6    !6-vector of coords and momenta (later version could include loss flag, particle id,etc)
-      integer*8 :: npart_gbl=5000000  !changed to integer*8 to enable npart_gbl > 2147483647
+      integer*8 :: npart_gbl=1000000  !changed to integer*8 to enable npart_gbl > 2147483647
 !!!!!!real*8 :: fracinbunch2=0.d0 ! the fraction of npart_gbl particles that is in bunch#2. Set to 0.d0 for a single bunch.
       real*8 :: chrgperbunch=1.0d-9 ! results are scaled to this value of charge/bunch (in Coulomb)
       integer :: lwseed=3147228 !random number seed
@@ -53,15 +53,17 @@ contains
       call MPI_COMM_SIZE(MPI_COMM_WORLD,mprocs,mpierr)
       call MPI_COMM_RANK(MPI_COMM_WORLD,myrank,mpierr)
 
-      ekin=70.d6
-      gam0=1.d0+ekin/0.510998910d6       !gamma
+!     ekin=60.d6
+!     gam0=1.d0+ekin/0.510998910d6       !gamma
+      gam0=120.d0       !gamma
+      ekin=(gam0-1.d0)*0.510998910d6
       gb0=sqrt((gam0+1.d0)*(gam0-1.d0))  !gamma*beta
       if(myrank.eq.0)write(6,"('gam0,gb0,beta0=',3(1pe19.12,1x))")gam0,gb0,gb0/gam0
       if(myrank.eq.0)write(6,*)'brho=',gb0/299792458.d0*0.510998910d6
 
 !beam centroid:
       cent(1:6)=0.d0
-      cent(5)=-0.2d0 !simulation begins at -20cm, outside the dipole fringe field
+      cent(5)=-0.35d0 !simulation begins at -20cm, outside the dipole fringe field
       cent(6)=gb0    !the 6th variable is gamma*beta_z; set the centroid to the design value
 
 !2nd moment matrix:
@@ -69,69 +71,54 @@ contains
       sigmat(1:6,1:6)=0.d0
 !fill in the other nonzero matrix elements:
 !for example, upright in phase space with zero emittance in all planes:
-      sigmat(1,1)=(1.d-5)**2
-      sigmat(3,3)=(1.d-5)**2
-      sigmat(5,5)=(1.d-5)**2
+!      sigmat(1,1)=(1.d-5)**2
+!      sigmat(3,3)=(1.d-5)**2
+!      sigmat(5,5)=(1.d-5)**2
 
 !here is old code in an attempt to initialize sigmat to achieve compression:
-!     alfx= 0.75784343
-!     betx= 3.17323883
-!     gamx= (1.d0+alfx**2)/betx
-!     alfy= 0.771049709
-!     bety= 4.001700150
-!     gamy=  (1.d0+alfy**2)/bety
-!     sigx=21.75477d-6
-!     sigy=24.4306d-6
-!     epsx=sigx**2/betx
-!     epsy=sigy**2/bety
-!static to dynamic (i.e. unnormalized to normalized):
-!     epsx=epsx*gam0
-!     epsy=epsy*gam0
-!     betx=betx/gam0
-!     bety=bety/gam0
-!     gamx=gamx*gam0
-!     gamy=gamy*gam0
-!
-!     sigmat(1,1)= betx*epsx
-!     sigmat(1,2)=-alfx*epsx*0.d0
-!     sigmat(2,2)= gamx*epsx*1.d-18*0.d0
-!     sigmat(2,1)=sigmat(1,2)
-!     if(myrank.eq.0)then
-!       write(6,*)'sigmat11=',sigmat(1,1)
-!       write(6,*)'sigmat12=',sigmat(1,2)
-!       write(6,*)'sigmat22=',sigmat(2,2)
-!     endif
-!     sigmat(3,3)= bety*epsy
-!     sigmat(3,4)=-alfy*epsy*0.d0
-!     sigmat(4,4)= gamy*epsy*1.d-18*0.d0
-!     sigmat(4,3)=sigmat(3,4)
-!     if(myrank.eq.0)then
-!       write(6,*)'sigmat33=',sigmat(3,3)
-!       write(6,*)'sigmat34=',sigmat(3,4)
-!       write(6,*)'sigmat44=',sigmat(4,4)
-!     endif
-!     sigz=40.d-6  ! zrms=40 micron
-!     r56=-0.43d0
-!     h=-1.d0/r56 !chirp set for maximum compression
-!     epsz=1.d-6
-!     sigmat(5,5)=sigz**2
-!     sigmat(5,6)=h*sigz**2*9.d3
-!     sigmat(6,5)=sigmat(5,6)
-!     sigmat(6,6)=(epsz**2+sigmat(5,6)**2)/sigmat(5,5)
-!
-!!!!  sigz=40.d-6
-!!!!  sigpz=0.1d0
-!!!!  zpz=3.87298334620742e-06
-!!!!  sigmat(5,5)=sigz**2
-!!!!  sigmat(5,6)=-zpz
-!!!!  sigmat(6,6)=sigpz**2
-!!!!  sigmat(6,5)=sigmat(5,6)
-!
-!     if(myrank.eq.0)then
-!       write(6,*)'sigmat55=',sigmat(5,5)
-!       write(6,*)'sigmat56=',sigmat(5,6)
-!       write(6,*)'sigmat66=',sigmat(6,6)
-!     endif
+     alfx=3.588179d+00
+     betx=2.426424d+01 
+     gamx=(1.d0+alfx**2)/betx
+     alfy=-4.584302d+00
+     bety=2.741106d+01
+     gamy=(1.d0+alfy**2)/bety
+     epsx=1.414608d-06 !normalized
+     epsy=1.410592d-06 !normalized
+
+     sigmat(1,1)=betx*epsx/gb0
+     sigmat(1,2)=-alfx*epsx
+     sigmat(2,1)=sigmat(1,2)
+     sigmat(2,2)=gamx*epsx*gb0
+     if(myrank.eq.0)then
+       write(6,*)'sigmat11=',sigmat(1,1)
+       write(6,*)'sigmat12=',sigmat(1,2)
+       write(6,*)'sigmat22=',sigmat(2,2)
+     endif
+     sigmat(3,3)=bety*epsy/gb0
+     sigmat(3,4)=-alfy*epsy
+     sigmat(4,4)=gamy*epsy*gb0
+     sigmat(4,3)=sigmat(3,4)
+     if(myrank.eq.0)then
+       write(6,*)'sigmat33=',sigmat(3,3)
+       write(6,*)'sigmat34=',sigmat(3,4)
+       write(6,*)'sigmat44=',sigmat(4,4)
+     endif
+
+     r56=3.3d-1
+     h=-1.d0/r56 !chirp set for maximum compression
+     sigz=1.d-4  ! zrms
+     sigpz=5.d-2
+     sigmat(5,5)=(sigz)**2
+     sigmat(6,6)=((gb0/gam0)**2)*(sigpz**2+(gam0*h*sigz)**2)
+     sigmat(5,6)=gb0*h*sigz**2
+     sigmat(6,5)=sigmat(5,6)
+
+     if(myrank.eq.0)then
+       write(6,*)'sigmat55=',sigmat(5,5)
+       write(6,*)'sigmat56=',sigmat(5,6)
+       write(6,*)'sigmat66=',sigmat(6,6)
+       write(6,*)'emittz=',sqrt(sigmat(5,5)*sigmat(6,6)-sigmat(5,6)**2)
+     endif
       return
       end
 
@@ -183,8 +170,12 @@ contains
       integer :: nstep,idofieldcalc
       idofieldcalc=0
 !     if(cent(5).gt.5.d0)idofieldcalc=1
-!     if(nstep.ge.1000)idofieldcalc=1
-      if(nstep.le.100 .and. mod(nstep,25).eq.0)idofieldcalc=1
+!      if(nstep.eq.136)idofieldcalc=1
+!      if(nstep.eq.294)idofieldcalc=1
+!      if(nstep.eq.847)idofieldcalc=1
+!      if(nstep.eq.1715)idofieldcalc=1
+      if(nstep.eq.2050)idofieldcalc=1
+!      if(nstep.eq.2195)idofieldcalc=1
       return
       end
 end module lwprobcons
