@@ -169,13 +169,7 @@ contains
       real*8, dimension(*) :: cent !centroid
       integer :: nstep,idofieldcalc
       idofieldcalc=0
-!     if(cent(5).gt.5.d0)idofieldcalc=1
-!      if(nstep.eq.136)idofieldcalc=1
-!      if(nstep.eq.294)idofieldcalc=1
-!      if(nstep.eq.847)idofieldcalc=1
-!      if(nstep.eq.1715)idofieldcalc=1
       if(nstep.eq.2050)idofieldcalc=1
-!      if(nstep.eq.2195)idofieldcalc=1
       return
       end
 end module lwprobcons
