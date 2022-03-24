@@ -20,14 +20,14 @@ contains
       integer :: n
       integer, parameter :: ndipoles=4
       real*8, parameter :: thet0=0.349065850398866  !20 degrees
-      real*8, parameter :: drouter=1.49d0*cos(thet0)
-      real*8, parameter :: drmiddle=1.705d0
+      real*8, parameter :: drouter=1.4d0*cos(thet0)
+      real*8, parameter :: drmiddle=2.563d0
 !     real*8, parameter :: effarclen=0.20d0*0.979815536051016d0
 !     real*8, parameter :: dd=effarclen*sin(thet0)/thet0 ! dipole z-length
-      real*8, parameter :: dd=0.20d0 ! dipole z-length
+      real*8, parameter :: dd=0.3d0 ! dipole z-length
       real*8, parameter :: effarclen=dd*thet0/sin(thet0)
       real*8, parameter :: z0=0.0d0   !drift space before first dipole
-      real*8, parameter :: gam0=1.d0+70.d6/0.510998910d6   !NOTE WELL: fix later to get energy from probcons.f90
+      real*8, parameter :: gam0=120    !1.d0+60.d6/0.510998910d6   !NOTE WELL: fix later to get energy from probcons.f90
       real*8, parameter :: gb0=sqrt((gam0+1.d0)*(gam0-1.d0))
       real*8, parameter :: brho=gb0/299792458.d0*0.510998910d6
       real*8, parameter :: bchic=thet0*abs(brho)/effarclen
@@ -36,7 +36,7 @@ contains
 !     real*8, parameter, dimension(ndipoles) :: b00=(/-bchic,bchic,bchic,-bchic/)  !chicane magnet B field
       real*8, parameter, dimension(ndipoles) :: b00=(/+bchic,-bchic,-bchic,+bchic/)  !chicane magnet B field
 !     real*8, parameter :: eps2=0.100d0/(2.d0*asin(1.d0)) !chicane magnet fringe field parameter
-      real*8, parameter :: eps2=0.060d0/(2.d0*asin(1.d0)) !chicane magnet fringe field parameter
+      real*8, parameter :: eps2=0.025  !0.060d0/(2.d0*asin(1.d0)) !chicane magnet fringe field parameter
 
       e0(1:3)=0.d0
       b0(1:3)=0.d0
