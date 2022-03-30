@@ -104,9 +104,9 @@ contains
        write(6,*)'sigmat44=',sigmat(4,4)
      endif
 
-     r56=3.3d-1
+     r56=3.4d-1
      h=-1.d0/r56 !chirp set for maximum compression
-     sigz=1.d-4  ! zrms
+     sigz=1.34d-3  ! zrms
      sigpz=5.d-2
      sigmat(5,5)=(sigz)**2
      sigmat(6,6)=((gb0/gam0)**2)*(sigpz**2+(gam0*h*sigz)**2)
