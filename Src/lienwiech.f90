@@ -11,6 +11,135 @@ integer, parameter, private :: qp = REAL128
 
 contains
 
+      subroutine getselfconsistentfield(t,np_lcl,ptcls,ebself)
+      use mpi
+      use lwprobcons, only : npart_gbl,chrgperbunch,imax,jmax,kmax
+      use diagnostics, only : getcentroid
+      implicit none
+      real*8 :: t
+      integer :: np_lcl
+      real*8, dimension(:,:) :: ptcls,ebself
+      real*8, dimension(3) :: umin,umax,uspread
+      real*8, dimension(6) :: lvec,gvec,av
+      real*8, dimension(3) :: obspt
+      real*8 :: xmin,xmax,hx,hxi,ymin,ymax,hy,hyi,zmin,zmax,hz,hzi,xval,yval,zval,xcent,ycent,zcent
+      real*8 :: obstime
+      real*8, dimension(6) :: ebvel,ebrad,ebradtot,ebveltot
+      real*8, parameter :: clite=299792458.d0
+      real*8, parameter :: fpei=clite**2*1.e-7 !use this if will multiply by charge/bunch
+      real*8, parameter :: efpei=clite**2*1.e-7*1.602176487e-19 !use if will multiply by #particles/bunchs
+      real*8, dimension(12,imax,jmax,kmax) :: ebcomp,ebcompgbl
+      real*8, dimension(6,imax,jmax,kmax) :: ebgrid
+      real*8 :: tsearch,coneval,tsearchmin,conevalmax
+      integer :: ifailconv,ibadnewt
+      integer :: i,j,k,lth,n,mlo,mhi,mlomin,mhimax,ierr
+      integer :: indx,jndx,kndx,indxp1,jndxp1,kndxp1
+      real*8 :: ab,de,gh
+      integer :: ihertz,iticks0,iticks1
+      real*8 :: elapsed
+      integer :: mprocs,myrank,mpierr
+      call MPI_COMM_SIZE(MPI_COMM_WORLD,mprocs,mpierr)
+      call MPI_COMM_RANK(MPI_COMM_WORLD,myrank,mpierr)
+      call system_clock(count_rate=ihertz)
+      call system_clock(count=iticks0)
+      ebcomp(:,:,:,:)=0.d0 !do I need this?
+!get the min and max sizes needed to contain the bunch:
+      lvec(1)=-minval(ptcls(1,1:np_lcl))
+      lvec(2)=-minval(ptcls(3,1:np_lcl))
+      lvec(3)=-minval(ptcls(5,1:np_lcl))
+      lvec(4)= maxval(ptcls(1,1:np_lcl))
+      lvec(5)= maxval(ptcls(3,1:np_lcl))
+      lvec(6)= maxval(ptcls(5,1:np_lcl))
+      call MPI_ALLREDUCE(lvec,gvec,6,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,ierr)
+      umin(1:3)=-gvec(1:3)
+      umax(1:3)= gvec(4:6)
+      uspread(1:3)=umax(1:3)-umin(1:3)
+      umin(1:3)=umin(1:3)-1.d-9*uspread(1:3)
+      umax(1:3)=umax(1:3)+1.d-9*uspread(1:3)
+      hx=(umax(1)-umin(1))/dble(imax-1)
+      hy=(umax(2)-umin(2))/dble(jmax-1)
+      hz=(umax(3)-umin(3))/dble(kmax-1)
+      hxi=1.d0/hx
+      hyi=1.d0/hy
+      hzi=1.d0/hz
+!diagnostics (not really needed):
+      tsearchmin=9999999.
+      conevalmax=-9999999.
+      mlomin=999999
+      mhimax=-999999
+!loop over grid points and compute the LW field at the grid points:
+      obstime=t
+      do i=1,imax
+        xval=umin(1)+(i-1)*hx
+        do j=1,jmax
+        yval=umin(2)+(j-1)*hy
+          do k=1,kmax
+            zval=umin(3)+(k-1)*hz
+            obspt(1)=xval
+            obspt(2)=yval
+            obspt(3)=zval
+            ebradtot(:)=0.d0
+            ebveltot(:)=0.d0
+            do lth=1,np_lcl
+              ebvel(:)=0.d0 !do I need this?
+              ebrad(:)=0.d0 !do I need this?
+              call getfieldat4dpt(obstime,obspt,ebvel,ebrad,tsearch,coneval,mlo,mhi,lth,ifailconv,ibadnewt,ierr)
+              if(ierr.ne.0)cycle
+              if(tsearch.lt.tsearchmin)tsearchmin=tsearch
+              if(coneval.gt.conevalmax)conevalmax=coneval
+              if(mlo.lt.mlomin)mlomin=mlo
+              if(mhi.gt.mhimax)mhimax=mhi
+              ebveltot(:)=ebveltot(:)+ebvel
+              ebradtot(:)=ebradtot(:)+ebrad
+            enddo !over particles
+            ebcomp(1:3,i,j,k)=ebveltot(1:3)   !electric velocity field
+            ebcomp(4:6,i,j,k)=ebradtot(1:3)   !electric radiation field
+            ebcomp(7:9,i,j,k)=ebveltot(4:6)   !magnetic velocity field
+            ebcomp(10:12,i,j,k)=ebradtot(4:6) !magnetic radiation field
+          enddo
+        enddo
+      enddo
+      call MPI_ALLREDUCE(ebcomp,ebcompgbl,12*imax*jmax*kmax,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+      ebcomp(1:12,1:imax,1:jmax,1:kmax)=ebcompgbl(1:12,1:imax,1:jmax,1:kmax)*fpei*chrgperbunch/npart_gbl
+      call system_clock(count=iticks1)
+      elapsed=(iticks1-iticks0)/(1.d0*ihertz)
+!     if(myrank.eq.0)write(6,*)'PE0 diagnostics:',mlomin,mhimax,conevalmax,elapsed
+      if(myrank.eq.0)write(6,"('PE0 diagnostics: ',i5,1x,i5,1x,1pe10.3,1x,1pe12.3)")mlomin,mhimax,conevalmax,elapsed
+!
+!the following could be edited to keep/exclude various x-y-z components, keep/exclude velocity or radiation terms...
+      ebgrid(1,:,:,:)=ebcompgbl(1,:,:,:)+ebcompgbl(4,:,:,:) !Ex velocity + radiation
+      ebgrid(2,:,:,:)=ebcompgbl(2,:,:,:)+ebcompgbl(5,:,:,:) !Ey velocity + radiation
+      ebgrid(3,:,:,:)=ebcompgbl(3,:,:,:)+ebcompgbl(6,:,:,:) !Ez velocity + radiation
+      ebgrid(4,:,:,:)=ebcompgbl(7,:,:,:)+ebcompgbl(10,:,:,:) !Bx velocity + radiation
+      ebgrid(5,:,:,:)=ebcompgbl(8,:,:,:)+ebcompgbl(11,:,:,:) !By velocity + radiation
+      ebgrid(6,:,:,:)=ebcompgbl(9,:,:,:)+ebcompgbl(12,:,:,:) !Bz velocity + radiation
+!
+!interpolate the field at the particle locations:
+      do n=1,np_lcl
+        indx=(ptcls(1,n)-umin(1))*hxi + 1 !arrays are 1-based in this routine
+        jndx=(ptcls(3,n)-umin(2))*hyi + 1
+        kndx=(ptcls(5,n)-umin(3))*hzi + 1
+        indxp1=indx+1
+        jndxp1=jndx+1
+        kndxp1=kndx+1
+        ab=((umin(1)-ptcls(1,n))+indx*hx)*hxi
+        de=((umin(2)-ptcls(3,n))+jndx*hy)*hyi
+        gh=((umin(3)-ptcls(5,n))+kndx*hz)*hzi
+!<this would be the place check for out-of-bounds but I'm skipping it to save time>
+        ebself(1:6,n)=                                                  &
+     &  ebgrid(1:6,indx,jndx,kndx)*ab*de*gh                             &
+     & +ebgrid(1:6,indx,jndxp1,kndx)*ab*(1.-de)*gh                      &
+     & +ebgrid(1:6,indx,jndxp1,kndxp1)*ab*(1.-de)*(1.-gh)               &
+     & +ebgrid(1:6,indx,jndx,kndxp1)*ab*de*(1.-gh)                      &
+     & +ebgrid(1:6,indxp1,jndx,kndxp1)*(1.-ab)*de*(1.-gh)               &
+     & +ebgrid(1:6,indxp1,jndxp1,kndxp1)*(1.-ab)*(1.-de)*(1.-gh)        &
+     & +ebgrid(1:6,indxp1,jndxp1,kndx)*(1.-ab)*(1.-de)*gh               &
+     & +ebgrid(1:6,indxp1,jndx,kndx)*(1.-ab)*de*gh
+!!!     ebself(1:6,n)=ebself(1:6,n)*0.d0 ! DEBUGGING debugging
+      enddo
+      return
+      end
+
       subroutine getfield_atallpts(t,av,np_lcl,nsuffix)
       use mpi
       use lwprobcons, only : npart_gbl,chrgperbunch,xoffmin,xoffmax,yoffmin,yoffmax,zoffmin,zoffmax,&
@@ -272,7 +401,6 @@ contains
       subroutine getfieldat4dpt(tobs,obspt,ebvel,ebrad,tsrch,fnormx,mlortn,mhirtn,ipart,ifailconv,ibadnewt,ierr)
       use mpi
       use lwprobcons, only : refptclhist,refptcltime,laststoredrefpart,nsteps
-      use evalroutines, only : evalt,evalt1
       implicit none
       real*8 :: tobs,tsrch,fnormx
       real*8, dimension(3) :: obspt
@@ -409,7 +537,7 @@ contains
 !this version uses a brent search instead of a newton search
       zzzeta1(1:6)=refptclhist(1:6,mlo,ipart)
       zzzeta2(1:6)=refptclhist(1:6,mhi,ipart)
-      call zbrent(xobs,yobs,zobs,tobs,zzzeta1,refptcltime(mlo),zzzeta2,refptcltime(mhi),1.d-20,0.d0,0.d0,tnewt,&
+      call zbrent(xobs,yobs,zobs,tobs,zzzeta1,refptcltime(mlo),zzzeta2,refptcltime(mhi),1.d-16,0.d0,0.d0,tnewt,&
      &            errbrent,icountbrent,ididzb)
       if(ididzb.ne.1)write(6,*)'ididzb=',ididzb
         zetanewt(1:6,1)=zzzeta1(1:6)
@@ -625,15 +753,14 @@ contains
 ! the 4-vector norm is (x-zetaret(1))**2+(y-zetaret(3))**2+(z-zetaret(5))**2-clite**2*(tval-tret))**2
 ! on input, the 4-vector norm is known to change sign between t1 and t2
 ! adapted from numerical recipes function zbrent
-      use evalroutines, only : evalt1
       implicit none
       real*8 :: x,y,z,tval,t1,t2,tret,errbrent
       integer :: icountbrent,ididzb,ididdop
       real*8, dimension(6) :: zeta1,zeta2
       real*8, dimension(6) :: zetaret
       real*8, allocatable, dimension(:,:) :: zetaret2d
-      integer, parameter :: itmax=100
-      real*8, parameter :: eps=3.d-20
+      integer, parameter :: itmax=20
+      real*8, parameter :: eps=3.d-8
       real*8 :: tol,rtol,atol !tol=zbrent tolerance; rtol,atol=dop853 tolerances
       integer, parameter :: iout=0
       integer :: iter
@@ -719,6 +846,41 @@ contains
       write(6,*)'zbrent failure: exceeded maximum iterations'
       ididzb=4
       tret=b
+      return
+      end
+
+      subroutine evalt1(t,y,f) ! 1particle, t is the independent variable
+      use mpi
+      use externalfield, only : getexternalfield
+      implicit none
+      real*8 :: t
+      real*8, dimension(:,:) :: y,f
+      integer :: n1,np,n,ierr
+      real*8, dimension(3) :: e0,b0 !external field, calculated on-the-fly for each particle
+      real*8 :: clite,cliteinv
+      real*8 :: xmc2,qbymcc,qbymc,qbym
+      real*8 :: gam,gam2,gbz2,gbz,den1
+      real*8 :: gbx0,gby0,gbz0,gam0
+      integer :: mprocs,myrank,mpierr
+      call MPI_COMM_SIZE(MPI_COMM_WORLD,mprocs,mpierr)
+      call MPI_COMM_RANK(MPI_COMM_WORLD,myrank,mpierr)
+      n1=ubound(y,1)
+      clite=299792458.d0
+      cliteinv=1.d0/clite
+      xmc2=0.510998910d6
+      qbymcc=1.d0/xmc2
+      qbymc=1.d0/xmc2*clite
+      qbym=1.d0/xmc2*clite**2
+      f(1:n1,1)=0.d0 !ensures f=0 for lost particles and for columns beyond 6
+        gam2=1.d0+y(2,1)**2+y(4,1)**2+y(6,1)**2
+        gam=sqrt(gam2)
+        call getexternalfield(y(1,1),y(3,1),y(5,1),t,e0,b0,ierr)
+        f(1,1)=y(2,1)*clite/gam
+        f(2,1)=qbymc*e0(1)+qbym*(y(4,1)*b0(3)-y(6,1)*b0(2))/gam
+        f(3,1)=y(4,1)*clite/gam
+        f(4,1)=qbymc*e0(2)+qbym*(y(6,1)*b0(1)-y(2,1)*b0(3))/gam
+        f(5,1)=y(6,1)*clite/gam
+        f(6,1)=qbymc*e0(3)+qbym*(y(2,1)*b0(2)-y(4,1)*b0(1))/gam
       return
       end
 
