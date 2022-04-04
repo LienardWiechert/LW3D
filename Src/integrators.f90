@@ -28,16 +28,21 @@ contains
       subroutine rk4(y,tini,tfin,nsteps,eval)
       use mpi
       use lienwiech, only : getfield_atallpts
-      use diagnostics, only : getcentroid
-      use lwprobcons, only : tauhistmin,tauhistmax,refptcltime,laststoredrefpart,testtoperformfieldcalc,istopafter1fieldcalc
+      use putils, only : pwrite
+      use diagnostics, only : getcentroid,openfile
+      use lwprobcons, only : tauhistmin,tauhistmax,refptcltime,laststoredrefpart,testtoperformfieldcalc,istopafter1fieldcalc,&
+     &                       testtowriteptcls,npart_gbl
       implicit none
       real*8, dimension(:,:) :: y
       real*8 :: tini,tfin
       integer :: nsteps,mlo,mhi,mlomin,mhimax,gblmlomin,gblmhimax
       real*8, allocatable, dimension(:,:) :: yt,f,a,b,c,d
-      integer :: n1,np,n,irtn,k,i,m,lth,idofieldcalc
+      integer :: n1,np,n,irtn,k,i,m,lth,idofieldcalc,iwriteptcls
       real*8 :: h,t,tt,xdum,zdum
       integer :: mprocs,myrank,mpierr,ierr
+      character*32 :: pname
+      integer, parameter :: nfiledigits=4
+      integer, parameter :: nptclswritten=10000
 
       real*8, dimension(6) :: av  ! fix (6) later !!!!!!
 
@@ -96,6 +101,17 @@ contains
           if(myrank.eq.0)write(6,*)'Done computing fields.'
           if(istopafter1fieldcalc.eq.1)exit !test to exit from loop
         endif
+        call testtowriteptcls(av,n,iwriteptcls)
+      if(iwriteptcls.eq.1)then
+        pname='ptcls'
+        call openfile(pname,490,i,nfiledigits)
+        call pwrite(y,n1,np,490,1,nptclswritten,6,15)
+        close(490)
+!       pname='zprof'
+!       call openfile(pname,490,i,nfiledigits)
+!       call profile1d(y,-1.d0,5,1024,490)
+!       close(490)
+      endif
       enddo
       return
       end
@@ -104,22 +120,26 @@ contains
       use mpi
       use lienwiech, only : getfield_atallpts
       use putils, only : pwrite
-      use diagnostics, only : getcentroid,moments
-      use lwprobcons, only : tauhistmin,tauhistmax,refptcltime,laststoredrefpart,testtoperformfieldcalc,istopafter1fieldcalc
+      use diagnostics, only : getcentroid,moments,openfile
+      use lwprobcons, only : tauhistmin,tauhistmax,refptcltime,laststoredrefpart,testtoperformfieldcalc,istopafter1fieldcalc,&
+     &                       testtowriteptcls,npart_gbl,nstepcounter
       implicit none
       real*8 :: tini,tfin
       integer :: nsteps
       real*8, dimension(:,:) :: y
-      real*8, allocatable, dimension(:,:) :: yp,yc,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11
+      real*8, allocatable, dimension(:,:) :: yp,yc,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,yminusav
       real*8, dimension(10) :: am,bm
       real*8, parameter, dimension(10) :: a(1:10)= &
      &  (/57281.d0,-583435.d0,2687864.d0,-7394032.d0,13510082.d0,-17283646.d0,16002320.d0,-11271304.d0,9449717.d0,2082753.d0/)
       real*8, parameter, dimension(10) :: b(1:10)= &
      &  (/-2082753.d0,20884811.d0,-94307320.d0,252618224.d0,-444772162.d0,538363838.d0,-454661776.d0,265932680.d0,-104995189.d0,&
      &     30277247.d0/)
-      integer :: n1,np,nsa,i,j,idofieldcalc
+      integer :: n1,np,nsa,i,j,idofieldcalc,iwriteptcls,k
       real*8 :: h,t,tint,hdiv
       integer :: mprocs,myrank,mpierr,irtnerr
+      character*32 :: pname
+      integer, parameter :: nfiledigits=4
+      integer, parameter :: nptclswritten=10000
 
       real*8, dimension(6) :: av  ! fix (6) later !!!!!!
 
@@ -137,6 +157,7 @@ contains
       np=ubound(y,2)
       allocate(yp(n1,np),yc(n1,np))
       allocate(f1(n1,np),f2(n1,np),f3(n1,np),f4(n1,np),f5(n1,np),f6(n1,np),f7(n1,np),f8(n1,np),f9(n1,np),f10(n1,np),f11(n1,np))
+      allocate(yminusav(n1,np))
 
       call getcentroid(y,av,n1,np)
       if(myrank.eq.0)write(6,*)'Entered Adams routine...'
@@ -148,33 +169,43 @@ contains
           call afterstep(t,y) !store the initial values in the history arrays
         endif
       endif
+      nstepcounter=0
       call eval(t,y,f1)
       call rk4cpy(y,tini,tini+h,10,eval)
       t=t+h; if(t.ge.tauhistmin .and. t.le.tauhistmax)call afterstep(t,y)
+      nstepcounter=1
       call eval(t,y,f2)
       call rk4cpy(y,tini+h,tini+2.d0*h,10,eval)
       t=t+h; if(t.ge.tauhistmin .and. t.le.tauhistmax)call afterstep(t,y)
+      nstepcounter=2
       call eval(t,y,f3)
       call rk4cpy(y,tini+2.d0*h,tini+3.d0*h,10,eval)
       t=t+h; if(t.ge.tauhistmin .and. t.le.tauhistmax)call afterstep(t,y)
+      nstepcounter=3
       call eval(t,y,f4)
       call rk4cpy(y,tini+3.d0*h,tini+4.d0*h,10,eval)
       t=t+h; if(t.ge.tauhistmin .and. t.le.tauhistmax)call afterstep(t,y)
+      nstepcounter=4
       call eval(t,y,f5)
       call rk4cpy(y,tini+4.d0*h,tini+5.d0*h,10,eval)
       t=t+h; if(t.ge.tauhistmin .and. t.le.tauhistmax)call afterstep(t,y)
+      nstepcounter=6
       call eval(t,y,f6)
       call rk4cpy(y,tini+5.d0*h,tini+6.d0*h,10,eval)
       t=t+h; if(t.ge.tauhistmin .and. t.le.tauhistmax)call afterstep(t,y)
+      nstepcounter=6
       call eval(t,y,f7)
       call rk4cpy(y,tini+6.d0*h,tini+7.d0*h,10,eval)
       t=t+h; if(t.ge.tauhistmin .and. t.le.tauhistmax)call afterstep(t,y)
+      nstepcounter=7
       call eval(t,y,f8)
       call rk4cpy(y,tini+7.d0*h,tini+8.d0*h,10,eval)
       t=t+h; if(t.ge.tauhistmin .and. t.le.tauhistmax)call afterstep(t,y)
+      nstepcounter=8
       call eval(t,y,f9)
       call rk4cpy(y,tini+8.d0*h,tini+9.d0*h,10,eval)
       t=t+h; if(t.ge.tauhistmin .and. t.le.tauhistmax)call afterstep(t,y)
+      nstepcounter=9
       call eval(t,y,f10)
       nsa=nsteps-9
       hdiv=h/7257600.0d+00
@@ -185,6 +216,7 @@ contains
       call moments(y,n1,np,tint,20,24,25,26,8,0,0,0,0,irtnerr)
 
       do 100 i=1,nsa
+      nstepcounter=i+9
       yp(1:n1,1:np)=y(1:n1,1:np)+bm(1)*f1(1:n1,1:np)+bm(2)*f2(1:n1,1:np)+bm(3)*f3(1:n1,1:np) &
      & +bm(4)*f4(1:n1,1:np)+bm(5)*f5(1:n1,1:np)+bm(6)*f6(1:n1,1:np)+bm(7)*f7(1:n1,1:np) &
      & +bm(8)*f8(1:n1,1:np)+bm(9)*f9(1:n1,1:np)+bm(10)*f10(1:n1,1:np)
@@ -215,6 +247,26 @@ contains
         if(myrank.eq.0)write(6,*)'Done computing fields.'
         if(istopafter1fieldcalc.eq.1)exit !test to exit from loop
       endif
+      call testtowriteptcls(av,i+9,iwriteptcls)
+      if(iwriteptcls.eq.1)then
+        pname='ptcls'
+        call openfile(pname,490,i+9,nfiledigits)
+        if(myrank.eq.0)write(6,*)'particle output to file ',i+9,' with <z>=',av(5)
+        do k=1,np
+          yminusav(1,k)=y(1,k)-av(1)
+          yminusav(2,k)=y(2,k)-av(2)
+          yminusav(3,k)=y(3,k)-av(3)
+          yminusav(4,k)=y(4,k)-av(4)
+          yminusav(5,k)=y(5,k)-av(5)
+          yminusav(6,k)=y(6,k)-av(6)
+        enddo
+        call pwrite(yminusav,n1,np,490,1,nptclswritten,6,15)
+        close(490)
+!       pname='zprof'
+!       call openfile(pname,490,i+9,nfiledigits)
+!       call profile1d(y,-1.d0,5,1024,490)
+!       close(490)
+      endif
   100 continue
       return
       end
@@ -222,7 +274,6 @@ contains
       subroutine afterstep(t,y)
       use mpi
       use lwprobcons, only : refptclhist,refptcltime,laststoredrefpart,nhistpoints
-      use evalroutines, only : evalt1
       implicit none
       real*8 :: t
       real*8, dimension(:,:) :: y
