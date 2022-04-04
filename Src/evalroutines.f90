@@ -13,6 +13,8 @@ contains
 
       subroutine evalt(t,y,f) ! t is the independent variable
       use mpi
+      use lwprobcons, only : selfconsistent,nstartselfcon,nstepcounter
+      use lienwiech, only : getselfconsistentfield
       use externalfield, only : getexternalfield
       implicit none
       real*8 :: t
@@ -46,6 +48,7 @@ contains
 !space-charge calc:
       allocate(ebself(6,np))
       ebself(:,:)=0.d0
+      if(selfconsistent.and.nstepcounter.ge.nstartselfcon)call getselfconsistentfield(t,np,y,ebself)
  
 !loop over particles:
       f(1:n1,1:np)=0.d0 !ensures f=0 for lost particles and for columns beyond 6
@@ -73,41 +76,4 @@ contains
       return
       end
 
-      subroutine evalt1(t,y,f) ! 1particle, t is the independent variable
-      use mpi
-      use externalfield, only : getexternalfield
-      implicit none
-      real*8 :: t
-      real*8, dimension(:,:) :: y,f
-      integer :: n1,np,n,ierr
-      real*8, dimension(3) :: e0,b0 !external field, calculated on-the-fly for each particle
-      real*8 :: clite,cliteinv
-      real*8 :: xmc2,qbymcc,qbymc,qbym
-      real*8 :: gam,gam2,gbz2,gbz,den1
-      real*8 :: gbx0,gby0,gbz0,gam0
-      integer :: mprocs,myrank,mpierr
-      call MPI_COMM_SIZE(MPI_COMM_WORLD,mprocs,mpierr)
-      call MPI_COMM_RANK(MPI_COMM_WORLD,myrank,mpierr)
-      n1=ubound(y,1)
-!!!   np=ubound(y,2)
-      clite=299792458.d0
-      cliteinv=1.d0/clite
-      xmc2=0.510998910d6
-      qbymcc=1.d0/xmc2
-      qbymc=1.d0/xmc2*clite
-      qbym=1.d0/xmc2*clite**2
-!
-      f(1:n1,1)=0.d0 !ensures f=0 for lost particles and for columns beyond 6
-        gam2=1.d0+y(2,1)**2+y(4,1)**2+y(6,1)**2
-        gam=sqrt(gam2)
-        call getexternalfield(y(1,1),y(3,1),y(5,1),t,e0,b0,ierr)
-        f(1,1)=y(2,1)*clite/gam
-        f(2,1)=qbymc*e0(1)+qbym*(y(4,1)*b0(3)-y(6,1)*b0(2))/gam
-        f(3,1)=y(4,1)*clite/gam
-        f(4,1)=qbymc*e0(2)+qbym*(y(6,1)*b0(1)-y(2,1)*b0(3))/gam
-        f(5,1)=y(6,1)*clite/gam
-        f(6,1)=qbymc*e0(3)+qbym*(y(2,1)*b0(2)-y(4,1)*b0(1))/gam
-!skip!  f(7,1)=0.d0
-      return
-      end
 end module
