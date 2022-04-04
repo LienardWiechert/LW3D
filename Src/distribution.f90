@@ -103,7 +103,7 @@ contains
 ! generate the initial distribution:
       disttype=1
       gaussiancutoff=5.d0
-      icholesky=0 ! =0 for 2x2 block diagonal case; =1 for a general sigmat
+      icholesky=1 ! =0 for 2x2 block diagonal case; =1 for a general sigmat but only use if emittance .ne. 0
       ! use the cholesky method when the matrix is not 2x2 block diagonal:
       if(sigmat(1,3).ne.0.d0 .or. sigmat(1,4).ne.0.d0 .or. sigmat(1,5).ne.0.d0 .or. sigmat(1,6).ne.0.d0)icholesky=1
 !     if(sigmat(2,3)... should check the other rows of sigmat to see if 2x2 block diagonal or not
