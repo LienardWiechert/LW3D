@@ -9,9 +9,9 @@ module lwprobcons
       integer, parameter :: nhistpoints=nint((tauhistmax-tauhistmin)/deltatau)+5  !# of points in the stored history
       real*8, parameter :: tauminus=-2.d-9!particles assumed to travel in free space (no field) from tauminus to tauini
 
-      integer, parameter :: imax=1  !imax=3  !size of the x output grid
-      integer, parameter :: jmax=1  !size of the y output grid
-      integer, parameter :: kmax=129 ! 60000 !size of the z output grid
+      integer, parameter :: imax=3  !imax=3  !size of the x output grid
+      integer, parameter :: jmax=3 !size of the y output grid
+      integer, parameter :: kmax=128 ! 60000 !size of the z output grid
       real*8, parameter :: xoffmin=0.d0 !-1.25d0 !-1.d-5
       real*8, parameter :: xoffmax=0.d0 !1.25d0 ! 1.d-5
       real*8, parameter :: yoffmin=0.d0
@@ -27,14 +27,17 @@ module lwprobcons
 
       integer, parameter :: indevar=0  !independent variable (0=t, 1=z)
       integer, parameter :: nprop=6    !6-vector of coords and momenta (later version could include loss flag, particle id,etc)
-      integer*8 :: npart_gbl=1000000  !changed to integer*8 to enable npart_gbl > 2147483647
+      integer*8 :: npart_gbl=2048 ! 32000  !changed to integer*8 to enable npart_gbl > 2147483647
 !!!!!!real*8 :: fracinbunch2=0.d0 ! the fraction of npart_gbl particles that is in bunch#2. Set to 0.d0 for a single bunch.
-      real*8 :: chrgperbunch=1.0d-9 ! results are scaled to this value of charge/bunch (in Coulomb)
+      real*8 :: chrgperbunch=1.0d-15 ! results are scaled to this value of charge/bunch (in Coulomb)
       integer :: lwseed=3147228 !random number seed
       integer :: iwritezeroes=0 ! =1 to write LW field even if the value is zero
       integer :: istopafter1fieldcalc=0 !=1 to stop after 1 field calc, otherwise the code keeps running
       logical :: rowmajor=.true.
       logical :: blankafter2dblock=.true.
+      logical :: selfconsistent=.true.
+      integer :: nstartselfcon=1000 !start the self-consistent calculation after this step (if selfconsistent=.true.)
+      integer :: nstepcounter
 
 save
 contains
@@ -104,9 +107,9 @@ contains
        write(6,*)'sigmat44=',sigmat(4,4)
      endif
 
-     r56=4.3d-1
+     r56=0.43d0 ! 3.3d-1
      h=-1.d0/r56 !chirp set for maximum compression
-     sigz=1.34d-3  ! zrms
+     sigz=1.34d-3 ! 1.d-4  ! zrms
      sigpz=5.d-2
      sigmat(5,5)=(sigz)**2
      sigmat(6,6)=((gb0/gam0)**2)*(sigpz**2+(gam0*h*sigz)**2)
@@ -131,6 +134,8 @@ contains
       call MPI_COMM_RANK(MPI_COMM_WORLD,myrank,mpierr)
       if(myrank.eq.0)write(6,*)' '
       if(myrank.eq.0)write(6,*)'PROBLEM CONSTANTS:'
+      if(myrank.eq.0)write(6,*)'selfconsistent=',selfconsistent
+      if(myrank.eq.0)write(6,*)'nstartselfcon=',nstartselfcon
       if(myrank.eq.0)write(6,*)'tauini,taufin=',tauini,taufin
       if(myrank.eq.0)write(6,*)'nsteps=',nsteps
       if(myrank.eq.0)write(6,*)'deltatau=',deltatau
@@ -169,7 +174,20 @@ contains
       real*8, dimension(*) :: cent !centroid
       integer :: nstep,idofieldcalc
       idofieldcalc=0
-      if(nstep.eq.2050)idofieldcalc=1
+!     if(nstep.eq.2050)idofieldcalc=1
       return
       end
+
+!this is where the user specifies the test to decide whether or not to write particles at the end of a step
+      subroutine testtowriteptcls(cent,nstep,iwriteparticles)
+      implicit none
+      real*8, dimension(*) :: cent !centroid
+      integer :: nstep,iwriteparticles
+      iwriteparticles=0
+!!!!!!if(mod(nstep,25).eq.0)then
+!!!!!!  iwriteparticles=1
+!!!!!!endif
+      return
+      end
+
 end module lwprobcons
