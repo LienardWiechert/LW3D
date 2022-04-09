@@ -100,7 +100,7 @@ contains
         enddo
       enddo
       call MPI_ALLREDUCE(ebcomp,ebcompgbl,12*imax*jmax*kmax,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-      ebcomp(1:12,1:imax,1:jmax,1:kmax)=ebcompgbl(1:12,1:imax,1:jmax,1:kmax)*fpei*chrgperbunch/npart_gbl
+      ebcompgbl(1:12,1:imax,1:jmax,1:kmax)=ebcompgbl(1:12,1:imax,1:jmax,1:kmax)*fpei*chrgperbunch/npart_gbl
       call system_clock(count=iticks1)
       elapsed=(iticks1-iticks0)/(1.d0*ihertz)
 !     if(myrank.eq.0)write(6,*)'PE0 diagnostics:',mlomin,mhimax,conevalmax,elapsed
